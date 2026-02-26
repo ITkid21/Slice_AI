@@ -1,28 +1,33 @@
-import os
-from dotenv import load_dotenv
+import anthropic
 from google import genai
 from google.genai import types
-import json
-from typing import Dict, Any
-import time
 
 load_dotenv() # Load variables from .env if present
 load_dotenv('key.env') # Support user-created key.env
 
-# Configure Gemini
-API_KEY = os.environ.get("GEMINI_API_KEY")
+# API Keys
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY")
 
 class SiliconCopilot:
     def __init__(self):
-        self.client = None
-        if API_KEY:
-            print(f"✅ Gemini API Key detected: {API_KEY[:6]}...")
-            self.client = genai.Client(api_key=API_KEY)
-        else:
-            print("❌ Gemini API Key NOT detected!")
+        self.gemini_client = None
+        self.claude_client = None
+        
+        if GEMINI_API_KEY:
+            print(f"✅ Gemini API Key detected: {GEMINI_API_KEY[:6]}...")
+            self.gemini_client = genai.Client(api_key=GEMINI_API_KEY)
             
-        # Tuned for user's key access
-        self.model_name = "gemini-2.0-flash" 
+        if CLAUDE_API_KEY:
+            print(f"✅ Claude API Key detected: {CLAUDE_API_KEY[:6]}...")
+            self.claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+
+        if not self.gemini_client and not self.claude_client:
+            print("❌ No AI API Keys detected!")
+
+        # Default model settings
+        self.gemini_model = "gemini-2.0-flash"
+        self.claude_model = "claude-3-5-sonnet-20240620"
         self.system_instruction = """
             You are Silicon Copilot, an elite semiconductor architect AI.
             Your goal is to analyze chip specifications and suggest optimizations.
@@ -57,22 +62,40 @@ class SiliconCopilot:
     def _safe_generate(self, prompt: str, fallback: Dict[str, Any], spec: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Helper to safely generate content with error handling, fallback, and 5s timeout.
+        Logic: Try Claude first, then Gemini, then Fallback.
         """
-        if not self.client:
+        if not self.claude_client and not self.gemini_client:
             return self._load_precomputed(spec or {}) if spec else fallback
 
-        max_retries = 2 # Reduced retries for hackathon demo speed
-        base_delay = 2
-
-        import concurrent.futures
-
-        for attempt in range(max_retries + 1):
+        # 1. Try Claude First
+        if self.claude_client:
             try:
-                # Use a ThreadPoolExecutor to implement a timeout on the synchronous SDK call
+                print(f"🤖 Calling Claude ({self.claude_model})...")
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(
-                        self.client.models.generate_content,
-                        model=self.model_name,
+                        self.claude_client.messages.create,
+                        model=self.claude_model,
+                        max_tokens=4096,
+                        system=self.system_instruction,
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    response = future.result(timeout=5)
+                    text = response.content[0].text
+                    # Claude sometimes adds markdown, strip it
+                    if "```json" in text:
+                        text = text.split("```json")[1].split("```")[0].strip()
+                    return json.loads(text)
+            except Exception as e:
+                print(f"⚠️ Claude failed: {e}. Trying Gemini...")
+
+        # 2. Try Gemini
+        if self.gemini_client:
+            try:
+                print(f"🤖 Calling Gemini ({self.gemini_model})...")
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        self.gemini_client.models.generate_content,
+                        model=self.gemini_model,
                         contents=prompt,
                         config=types.GenerateContentConfig(
                             system_instruction=self.system_instruction,
@@ -80,31 +103,15 @@ class SiliconCopilot:
                             response_mime_type="application/json"
                         )
                     )
-                    try:
-                        response = future.result(timeout=5) # 5 Second Timeout per user request
-                    except concurrent.futures.TimeoutError:
-                        print("⏱️ AI Timeout (5s) reached. Falling back to Pre-computed Analysis.")
-                        return self._load_precomputed(spec or {})
-                
-                # Parse JSON
-                text = response.text.strip()
-                if text.startswith("```json"):
-                    text = text.replace("```json", "").replace("```", "")
-                
-                return json.loads(text)
-
+                    response = future.result(timeout=5)
+                    text = response.text.strip()
+                    if "```json" in text:
+                        text = text.split("```json")[1].split("```")[0].strip()
+                    return json.loads(text)
             except Exception as e:
-                error_str = str(e)
-                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                    if attempt < max_retries:
-                        delay = base_delay * (2 ** attempt)
-                        print(f"⚠️ Rate Limit hit. Retrying in {delay}s... (Attempt {attempt+1}/{max_retries})")
-                        time.sleep(delay)
-                        continue
-                
-                print(f"❌ AI Generation Error: {e}")
-                break
-        
+                print(f"⚠️ Gemini failed: {e}. Falling back to pre-computed.")
+
+        # 3. Final Fallback
         return self._load_precomputed(spec or {})
 
     def analyze_architecture(self, spec: Dict[str, Any], analysis_result: Dict[str, Any]) -> Dict[str, Any]:

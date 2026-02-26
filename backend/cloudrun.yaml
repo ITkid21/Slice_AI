@@ -1,0 +1,22 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: sliceai-backend
+  labels:
+    cloud.googleapis.com/location: us-central1
+spec:
+  template:
+    spec:
+      containers:
+      - image: gcr.io/PROJECT_ID/sliceai-backend
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GEMINI_API_KEY
+          value: "YOUR_GEMINI_KEY"
+        - name: CLAUDE_API_KEY
+          value: "YOUR_CLAUDE_KEY"
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
