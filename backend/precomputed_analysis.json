@@ -1,0 +1,35 @@
+{
+    "monolithic_default": {
+        "summary": "This monolithic design focuses on standard AXI interconnects. While stable, it faces significant yield challenges at larger die sizes due to defect density as we scale to 5nm and below.",
+        "bottlenecks": [
+            "Die yield on 300mm wafers",
+            "Thermal hotspots in concentrated logic clusters",
+            "Limited scalability beyond single-socket configurations"
+        ],
+        "reasoning": "Standard monolithic approaches are hit hard by the reticle limit and exponential cost increases on leading-edge nodes.",
+        "suggestions": [
+            {
+                "parameter": "packaging_type",
+                "action": "change",
+                "value": "Chiplet",
+                "reason": "Moving to chiplets improves yield by up to 30% on 5nm."
+            }
+        ]
+    },
+    "multi_die_partitioning": {
+        "summary": "SYSTEM-LEVEL BREAKTHROUGH: By utilizing Multi-Die Partitioning via AMD Infinity Fabric, this architecture bypasses the monolithic yield wall. The design is split into optimal compute-complex dies (CCDs) and an specialized I/O die (IOD).",
+        "bottlenecks": [
+            "Cross-die latency (minimized by Infinity Fabric)",
+            "Package substrate complexity"
+        ],
+        "reasoning": "Infinity Fabric provides a high-bandwidth, low-latency coherent interconnect that makes multi-die communication feel like local on-die traffic. This allows for massive scaling without the cost of a giant monolithic die.",
+        "suggestions": [
+            {
+                "parameter": "interconnect_type",
+                "action": "set",
+                "value": "Infinity Fabric",
+                "reason": "Ensures peak throughput between NPU clusters across dies."
+            }
+        ]
+    }
+}

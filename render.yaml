@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: sliceai-backend
+    env: docker
+    region: oregon
+    plan: free
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false # Set via Render dashboard
+      - key: PORT
+        value: 8000

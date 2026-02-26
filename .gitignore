@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+key.env
+*.json
+!precomputed_analysis.json
+!firebase.json
+!package.json
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Firebase
+.firebase/
+firebaserc
+
+# OS
+.DS_Store
+Thumbs.db
