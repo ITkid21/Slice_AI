@@ -1,0 +1,17 @@
+# Exclude development and build artifacts
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+node_modules/
+dist/
+dist-ssr/
+frontend/
+.firebase/
+.git/
+
+# Keep key.env out (secrets are set via Cloud Run env vars)
+key.env
+.env
+
+# Keep everything in backend/ including JSON and Python files
