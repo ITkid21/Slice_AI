@@ -1,4 +1,4 @@
-🚀 AI-Powered IC Architecture Studio
+#🚀 AI-Powered IC Architecture Studio
 
 Our idea is to bring complex IC design into a smooth, visual, and easy-to-understand software experience.
 
