@@ -1,9 +1,37 @@
-import anthropic
-from google import genai
-from google.genai import types
+import os
+import json
+import time
+import concurrent.futures
+from typing import Dict, Any
+try:
+    from dotenv import load_dotenv
+    load_dotenv_available = True
+except ImportError:
+    load_dotenv_available = False
+    def load_dotenv(*args, **kwargs): pass
 
-load_dotenv() # Load variables from .env if present
-load_dotenv('key.env') # Support user-created key.env
+try:
+    import anthropic
+    anthropic_available = True
+except ImportError:
+    anthropic_available = False
+    anthropic = None
+
+try:
+    from google import genai
+    from google.genai import types
+    genai_available = True
+except ImportError:
+    genai_available = False
+    genai = None
+    types = None
+
+env_path = os.path.join(os.path.dirname(__file__), 'key.env')
+try:
+    load_dotenv()  # Load variables from .env if present
+    load_dotenv(env_path)  # Support user-created key.env
+except Exception:
+    pass
 
 # API Keys
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -14,13 +42,19 @@ class SiliconCopilot:
         self.gemini_client = None
         self.claude_client = None
         
-        if GEMINI_API_KEY:
-            print(f"✅ Gemini API Key detected: {GEMINI_API_KEY[:6]}...")
-            self.gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        if GEMINI_API_KEY and genai_available:
+            try:
+                print(f"✅ Gemini API Key detected: {GEMINI_API_KEY[:6]}...")
+                self.gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+            except Exception as e:
+                print(f"❌ Gemini init failed: {e}")
             
-        if CLAUDE_API_KEY:
-            print(f"✅ Claude API Key detected: {CLAUDE_API_KEY[:6]}...")
-            self.claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+        if CLAUDE_API_KEY and anthropic_available:
+            try:
+                print(f"✅ Claude API Key detected: {CLAUDE_API_KEY[:6]}...")
+                self.claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+            except Exception as e:
+                print(f"❌ Claude init failed: {e}")
 
         if not self.gemini_client and not self.claude_client:
             print("❌ No AI API Keys detected!")
