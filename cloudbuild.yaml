@@ -30,3 +30,7 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/sliceai-backend:$COMMIT_SHA'
+
+# Required when a service account is configured on the trigger
+options:
+  logging: CLOUD_LOGGING_ONLY
